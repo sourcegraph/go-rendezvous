@@ -54,7 +54,6 @@ func BenchmarkLookup(b *testing.B) {
 
 func BenchmarkLookupN(b *testing.B) {
 	b.ReportAllocs()
-	b.ReportAllocs()
 	for _, nodeCount := range []int{10, 100, 1000} {
 		b.Run(fmt.Sprintf("NodeCount-%d", nodeCount), func(b *testing.B) {
 			r := New(nodes(nodeCount), xxhash.Sum64String)
