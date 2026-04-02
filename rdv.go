@@ -1,6 +1,6 @@
 package rendezvous
 
-import "math"
+import "slices"
 
 type Rendezvous struct {
 	nodes map[string]int
@@ -12,6 +12,11 @@ type Rendezvous struct {
 type Hasher func(s string) uint64
 
 func New(nodes []string, hash Hasher) *Rendezvous {
+	// We copy and sort nodes to ensure LookupN has consistent ordering when
+	// two nodes have the same hash that doesn't depend on the order that nodes
+	// were passed in.
+	nodes = slices.Clone(nodes)
+	slices.Sort(nodes)
 	r := &Rendezvous{
 		nodes: make(map[string]int, len(nodes)),
 		nstr:  make([]string, len(nodes)),
@@ -60,16 +65,23 @@ func (r *Rendezvous) LookupN(k string, n int) []string {
 	}
 
 	nodes := make([]string, n)
-	mhash := uint64(math.MaxUint64) // max hash
+	selected := make([]bool, len(hashes))
 
 	for i := 0; i < n; i++ {
-		midx := 0
+		midx := -1
+		var mhash uint64
+
 		for j, h := range hashes {
-			if h > hashes[midx] && h < mhash {
-				midx = j
+			if selected[j] {
+				continue
+			}
+			if midx == -1 || h > mhash {
+				midx, mhash = j, h
 			}
 		}
-		nodes[i], mhash = r.nstr[midx], hashes[midx]
+
+		nodes[i] = r.nstr[midx]
+		selected[midx] = true
 	}
 
 	return nodes
